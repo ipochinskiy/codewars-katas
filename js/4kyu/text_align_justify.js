@@ -1,55 +1,53 @@
 const getLineLength = (...words) => words.join('').length + words.length - 1;
 
-const calculateSpacesCount = (wordsLength, wordsCount, lineLength) => {
-  const allSpaces = lineLength - wordsLength;
+const distribute = (words, maxLength) => {
+  const lines = [];
+
+  for (let i = 0; i < words.length; ) {
+    let line = [ words[i++] ];
+
+    while(i < words.length && getLineLength(...line, words[i]) <= maxLength) {
+      line.push(words[i++]);
+    }
+    lines.push(line);
+  }
+  return lines;
+};
+
+const calculateSpacesCount = (words, maxLength) => {
+  const allSpaces = maxLength - words.join('').length;
+  const wordsCount = words.length - 1;
+
   const perWord = Math.floor(allSpaces / wordsCount);
   const rest = allSpaces - perWord * wordsCount;
   return { perWord, rest };
 };
 
-const getSpaces = (n) => Array.from(Array(n)).map((el) => ' ').join('')
+const getSpaces = (n) => Array.from(Array(n)).map((el) => ' ').join('');
 
 const last = (items = []) => items[items.length - 1];
 
-const foo = (array = [], ...rest) => array.slice(0, array.length - 1).concat(rest);
+const sliceAndMap = (array = [], mapper, ...rest) => array
+  .slice(0, array.length - 1)
+  .map(mapper)
+  .concat(rest);
 
-const justifyLine = (words = [], lineLength) => {
+const makeWordExtender = ({ perWord, rest }) => (word, i) => {
+  let spacesCount = perWord + (i < rest ? 1 : 0);
+  return word + getSpaces(spacesCount);
+};
+
+const makeExtendLine = (maxLength) => (words) => {
   if (words.length === 1) {
     return words;
   }
 
-  const wordsWithSpaces = words.length - 1;
-  const spaces = calculateSpacesCount(words.join('').length, wordsWithSpaces, lineLength);
-
-  return foo(words).map((word, i) => {
-      let spacesCount = spaces.perWord + (i < spaces.rest ? 1 : 0);
-      return word + getSpaces(spacesCount);
-    }).concat(last(words));
+  const spaces = calculateSpacesCount(words, maxLength);
+  return sliceAndMap(words, makeWordExtender(spaces), last(words)).join('');
 };
 
-const justify = (str = '', len = 0) => {
-  if (len === 0) {
-    return '';
-  }
-
-  const words = str.trim().split(' ');
-  if (words.length === 1) {
-    return words[0];
-  }
-
-  let result = [[]];
-
-  words.forEach((word, index) => {
-    const line = last(result);
-
-    if (!line || (getLineLength(...line, word) <= len)) {
-      return line.push(word);
-    }
-
-    result = foo(result, justifyLine(line, len).join(''), [ word ]);
-  });
-
-  result = foo(result, last(result).join(' '));
-
-  return result.join('\n');
+const justify = (str = '', maxLength = 0) => {
+  const lines = distribute(str.split(' '), maxLength);
+  const tail = last(lines).join(' ');
+  return sliceAndMap(lines, makeExtendLine(maxLength), tail).join('\n');
 };
